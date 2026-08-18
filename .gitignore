@@ -16,3 +16,4 @@ media/processed/*
 scripts/agent/agent_config.env
 media/youtube/
 youtube_cookies*.txt
+downloaded_shorts/

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, status
+from sqlmodel import select
 
 from app.config import get_settings
 from app.deps import SessionDep
@@ -47,6 +48,23 @@ def pending_downloads(session: SessionDep, _: AgentAuthDep, limit: int = 5):
         "videos": [
             {"id": v.id, "youtube_video_id": v.youtube_video_id, "title": v.title}
             for v in videos
+        ]
+    }
+
+
+@router.get("/shorts")
+def all_shorts(session: SessionDep, _: AgentAuthDep):
+    """Every detected Short, regardless of whether a MediaAsset exists yet
+    -- for the agent's local-only mode (download to this machine, never
+    upload). The agent tracks what it already has locally itself; the
+    normal /pending-downloads (filtered by MediaAsset existence) is for
+    the upload-to-server mode instead."""
+    videos = session.exec(select(YouTubeVideo)).all()
+    shorts = [v for v in videos if v.is_short]
+    return {
+        "videos": [
+            {"id": v.id, "youtube_video_id": v.youtube_video_id, "title": v.title}
+            for v in shorts
         ]
     }
 
