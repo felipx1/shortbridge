@@ -19,17 +19,21 @@ print("parse_iso8601_duration: OK")
 # --- Short detection ---
 
 
-def video(duration, width=None, height=None, title="", description=""):
-    thumbs = {}
-    if width and height:
-        thumbs["high"] = {"url": "https://example.com/t.jpg", "width": width, "height": height}
+def video(duration, width=None, height=None, title="", description="", rotation=None, no_file_details=False):
+    file_details = {}
+    if not no_file_details and width and height:
+        stream = {"widthPixels": width, "heightPixels": height}
+        if rotation:
+            stream["rotation"] = rotation
+        file_details = {"videoStreams": [stream]}
     return {
         "contentDetails": {"duration": duration},
-        "snippet": {"title": title, "description": description, "thumbnails": thumbs},
+        "snippet": {"title": title, "description": description, "thumbnails": {}},
+        "fileDetails": file_details,
     }
 
 
-# Vertical, 45s -> Short
+# Vertical, 45s -> Short (real fileDetails pixel dims, not the useless thumbnail signal)
 is_short, reason = youtube.detect_short(video("PT45S", 1080, 1920))
 assert is_short is True, reason
 print("vertical 45s -> Short:", reason)
@@ -44,6 +48,12 @@ is_short, reason = youtube.detect_short(video("PT45S", 1920, 1080, title="My cli
 assert is_short is True, reason
 print("landscape 45s, #shorts tag -> Short:", reason)
 
+# Phone-recorded vertical video stored as a landscape file (1920x1080) but
+# flagged 90-degree rotated -> effective dims are 1080x1920, still a Short
+is_short, reason = youtube.detect_short(video("PT45S", 1920, 1080, rotation="clockwise"))
+assert is_short is True, reason
+print("landscape file + clockwise rotation -> Short:", reason)
+
 # 200s (over the 180s cap) even if vertical -> never a Short
 is_short, reason = youtube.detect_short(video("PT3M20S", 1080, 1920))
 assert is_short is False, reason
@@ -54,15 +64,18 @@ is_short, reason = youtube.detect_short(video("PT3M", 1080, 1920))
 assert is_short is True, reason
 print("vertical exactly 180s -> Short:", reason)
 
-# No thumbnail dims, no hashtag, short duration -> conservative False
-is_short, reason = youtube.detect_short(video("PT30S"))
-assert is_short is False, reason
-print("no aspect signal, no tag -> conservative not-Short:", reason)
-
-# No thumbnail dims but #shorts tag -> Short
-is_short, reason = youtube.detect_short(video("PT30S", title="#shorts"))
+# fileDetails unavailable (e.g. part rejected, or empty for this real
+# channel's videos -- this is the exact case that misclassified 253 real
+# Shorts as "not a Short" when the signal used to be thumbnail dimensions),
+# no hashtag, short duration -> duration alone is trusted
+is_short, reason = youtube.detect_short(video("PT30S", no_file_details=True))
 assert is_short is True, reason
-print("no aspect signal, #shorts tag -> Short:", reason)
+print("no fileDetails, no tag, short duration -> Short (duration-only fallback):", reason)
+
+# fileDetails unavailable but #shorts tag present -> Short
+is_short, reason = youtube.detect_short(video("PT30S", title="#shorts", no_file_details=True))
+assert is_short is True, reason
+print("no fileDetails, #shorts tag -> Short:", reason)
 
 print("\nauthorize URL (should include client_id, scope, state, access_type=offline, prompt=consent):")
 url = youtube.build_authorize_url("teststate123")

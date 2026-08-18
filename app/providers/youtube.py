@@ -4,13 +4,25 @@ current official docs (August 2026) rather than memory/tutorials -- see
 GOOGLE_OAUTH_SETUP.md for the sources and the platform quirks that shaped
 this file, in particular:
 
-- The Data API does not expose pixel width/height for a video anywhere.
-  YouTubeVideo.width/height stay unset from sync; short detection instead
-  reads width/height off `snippet.thumbnails` (which IS documented and
-  does reflect the source video's aspect ratio).
+- `snippet.thumbnails.*.width/height` is USELESS for aspect-ratio
+  detection, despite being documented and despite what it looks like it
+  should tell you: verified empirically against a real Shorts-only
+  channel (253 videos) that every single thumbnail reports 1280x720
+  regardless of the source video's real orientation. Don't reintroduce
+  this signal -- it silently misclassified 100% of a real channel's
+  Shorts as "not a Short" in production before this was caught.
+- The real pixel dimensions live in `fileDetails.videoStreams[].
+  widthPixels/heightPixels` -- "only visible to the video owner", which
+  we are, since this only ever runs against the connected channel's own
+  uploads. `rotation` on the same stream matters too: phone-recorded
+  vertical video is sometimes stored as a landscape file flagged
+  clockwise/counterClockwise, so width/height must be swapped before
+  computing the aspect ratio in that case.
 - There's no `isShort` field. Detection is duration (<=180s, the official
-  cutoff since October 2024) plus aspect ratio, with #shorts as a
-  tie-breaker -- see `detect_short`.
+  cutoff since October 2024) plus aspect ratio from fileDetails, with
+  #shorts as a tie-breaker -- see `detect_short`. `get_videos` requests
+  fileDetails but degrades gracefully (duration-only) if that part is
+  ever rejected for some account.
 - In OAuth consent "Testing" publishing status, Google expires refresh
   tokens for sensitive scopes (youtube.readonly included) after 7 days.
   `refresh_access_token` raises InvalidGrantError on that so callers can
@@ -152,18 +164,31 @@ def list_uploads_page(access_token: str, uploads_playlist_id: str, page_token: O
 
 
 def get_videos(access_token: str, video_ids: list[str]) -> list[dict]:
-    """Full video resources (snippet + contentDetails + status) for up to
-    50 IDs at a time -- the API's own batch limit."""
+    """Full video resources for up to 50 IDs at a time -- the API's own
+    batch limit. Includes `fileDetails` (real pixel dimensions, owner-only)
+    for accurate short detection; if that part is ever rejected for some
+    account/video mix, retries once without it rather than failing the
+    whole sync -- detect_short() falls back to duration-only in that case."""
     if not video_ids:
         return []
     assert len(video_ids) <= 50, "videos.list accepts at most 50 ids per call"
-    resp = httpx.get(
-        f"{API_BASE}/videos",
-        params={"part": "snippet,contentDetails,status", "id": ",".join(video_ids)},
-        headers=_auth_headers(access_token),
-        timeout=20,
-    )
-    resp.raise_for_status()
+    ids_param = ",".join(video_ids)
+    try:
+        resp = httpx.get(
+            f"{API_BASE}/videos",
+            params={"part": "snippet,contentDetails,status,fileDetails", "id": ids_param},
+            headers=_auth_headers(access_token),
+            timeout=30,
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError:
+        resp = httpx.get(
+            f"{API_BASE}/videos",
+            params={"part": "snippet,contentDetails,status", "id": ids_param},
+            headers=_auth_headers(access_token),
+            timeout=30,
+        )
+        resp.raise_for_status()
     return resp.json().get("items", [])
 
 
@@ -200,22 +225,38 @@ def parse_iso8601_datetime(value: str) -> Optional[datetime]:
         return None
 
 
-def _best_thumbnail_dimensions(thumbnails: dict) -> Optional[tuple[int, int]]:
-    """Picks the highest-res thumbnail that actually has width/height (the
-    API doesn't always return them). This is the only aspect-ratio signal
-    the Data API gives us -- see the module docstring."""
-    for size in ("maxres", "standard", "high", "medium", "default"):
-        thumb = thumbnails.get(size)
-        if thumb and thumb.get("width") and thumb.get("height"):
-            return thumb["width"], thumb["height"]
-    return None
+_ROTATED_90 = {"clockwise", "counterClockwise"}
+
+
+def _file_details_dimensions(video: dict) -> Optional[tuple[int, int]]:
+    """Real pixel width/height from the owner-only fileDetails part, with
+    the effective (as-displayed) orientation after accounting for a
+    90/270-degree rotation flag -- phone-recorded vertical video is
+    sometimes stored as a landscape file with a rotation tag rather than
+    landscape pixel dimensions. Returns None if fileDetails wasn't present
+    (part rejected, or still processing) -- caller falls back to
+    duration-only."""
+    streams = video.get("fileDetails", {}).get("videoStreams", [])
+    if not streams:
+        return None
+    stream = streams[0]
+    width, height = stream.get("widthPixels"), stream.get("heightPixels")
+    if not width or not height:
+        return None
+    if stream.get("rotation") in _ROTATED_90:
+        width, height = height, width
+    return width, height
 
 
 def detect_short(video: dict) -> tuple[bool, str]:
-    """(is_short, human-readable reason). Conservative by design: an
-    ambiguous video is classified as NOT a Short rather than guessed True
-    -- wrong "not a Short" is a one-click fix in the Library UI (section
-    8), wrong "Short" silently queues something that shouldn't be there."""
+    """(is_short, human-readable reason).
+
+    Primary signal: fileDetails (real pixel dimensions, owner-only -- see
+    module docstring for why snippet.thumbnails is NOT used here despite
+    looking like it should work). Falls back to duration-only when
+    fileDetails isn't available, since that's still a strong real-world
+    signal for a Shorts-oriented channel and the alternative (thumbnails)
+    was empirically wrong 100% of the time in production."""
     duration = parse_iso8601_duration(video.get("contentDetails", {}).get("duration", ""))
     if duration is None:
         return False, "duration unavailable from the API"
@@ -227,15 +268,17 @@ def detect_short(video: dict) -> tuple[bool, str]:
     description = snippet.get("description", "")
     has_hashtag = "#shorts" in title.lower() or "#shorts" in description.lower()
 
-    dims = _best_thumbnail_dimensions(snippet.get("thumbnails", {}))
+    dims = _file_details_dimensions(video)
     if dims:
         width, height = dims
         if height >= width:
-            return True, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s and vertical/square thumbnail ({width}x{height})"
+            return True, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s and vertical/square video ({width}x{height})"
         if has_hashtag:
-            return True, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s, landscape thumbnail ({width}x{height}) but #shorts tag present"
-        return False, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s but landscape thumbnail ({width}x{height})"
+            return True, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s, landscape video ({width}x{height}) but #shorts tag present"
+        return False, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s but landscape video ({width}x{height})"
 
+    # No fileDetails for this video (still processing, or the part got
+    # rejected for the whole batch). Duration is the best signal left.
     if has_hashtag:
-        return True, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s and #shorts tag present (no thumbnail dimensions available)"
-    return False, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s but no aspect-ratio or #shorts signal -- verify manually"
+        return True, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s and #shorts tag present (pixel dimensions unavailable)"
+    return True, f"duration {duration:.0f}s <= {SHORTS_MAX_DURATION_SECONDS}s (pixel dimensions unavailable from the API -- verify manually if this looks wrong)"
