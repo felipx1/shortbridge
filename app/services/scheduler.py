@@ -48,6 +48,11 @@ def start_scheduler() -> None:
 
         register_youtube_sync_job(scheduler)
 
+    if settings.enable_youtube_unofficial_download:
+        from app.workers.downloader import register_downloader_job
+
+        register_downloader_job(scheduler)
+
     scheduler.start()
     _started = True
 

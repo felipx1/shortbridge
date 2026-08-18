@@ -10,3 +10,9 @@ python-multipart==0.0.19
 httpx==0.28.1
 pydantic-settings==2.7.0
 cryptography==44.0.0
+# Unofficial, opt-in only (ENABLE_YOUTUBE_UNOFFICIAL_DOWNLOAD=true) -- see
+# UNOFFICIAL_DOWNLOAD.md. Not the official Data API; extracts video streams
+# via YouTube's internal player responses. Breaks whenever YouTube changes
+# that internals, hence pinned tightly and expected to need bumping --
+# check for a newer release first if downloads start failing.
+yt-dlp==2026.7.4

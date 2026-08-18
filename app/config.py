@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     def media_processed_dir(self) -> Path:
         return self.media_dir / "processed"
 
+    @property
+    def media_youtube_dir(self) -> Path:
+        """Where yt-dlp writes downloads, when enabled below."""
+        return self.media_dir / "youtube"
+
     # --- Secrets (required, no safe default) ---
     app_secret_key: str  # signs session cookies + CSRF tokens
     app_encryption_key: str  # encrypts OAuth tokens at rest (Fernet key, 32 url-safe base64 bytes)
@@ -70,6 +75,21 @@ class Settings(BaseSettings):
 
     # --- Scheduler ---
     youtube_sync_interval_hours: int = 6
+
+    # --- Unofficial YouTube download (yt-dlp), OFF by default. See
+    # UNOFFICIAL_DOWNLOAD.md before turning this on: not the official Data
+    # API, technically against YouTube's Terms of Service, and can break
+    # without warning whenever YouTube changes its internals. Explicit
+    # opt-in only -- never silently active. ---
+    enable_youtube_unofficial_download: bool = False
+    # Seconds to wait between each background download -- paces requests
+    # instead of bursting through the whole backlog at once (section 33's
+    # "no hagas polling agresivo" spirit, doubly true for an unofficial
+    # mechanism where bursty traffic is more likely to get flagged).
+    youtube_download_interval_seconds: int = 15
+    # Don't retry a failed download (private/deleted/age-restricted/etc.)
+    # again for this long -- avoids hot-looping on a permanently broken video.
+    youtube_download_retry_after_hours: int = 6
 
     @property
     def is_google_configured(self) -> bool:

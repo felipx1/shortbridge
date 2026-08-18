@@ -37,6 +37,12 @@ class YouTubeVideo(SQLModel, table=True):
     last_synced_at: datetime = Field(default_factory=utcnow)
     created_at: datetime = Field(default_factory=utcnow)
 
+    # Unofficial download (yt-dlp, opt-in -- see UNOFFICIAL_DOWNLOAD.md).
+    # Time-based backoff on failure (skip retrying for a while) instead of
+    # a hot loop hammering a video that's private/deleted/age-restricted.
+    download_attempted_at: Optional[datetime] = Field(default=None)
+    download_error: Optional[str] = Field(default=None)
+
     @property
     def is_short(self) -> bool:
         return self.short_override if self.short_override is not None else self.detected_as_short

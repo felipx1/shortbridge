@@ -5,6 +5,10 @@
 
 <p class="muted">{{ total_synced }} videos synced total.</p>
 
+{% if not download_enabled %}
+<p class="muted">Video file download is off (ENABLE_YOUTUBE_UNOFFICIAL_DOWNLOAD=false) — unofficial, opt-in, see UNOFFICIAL_DOWNLOAD.md.</p>
+{% endif %}
+
 <nav class="filter-tabs">
     <a href="/library?filter=shorts" class="{{ 'active' if filter == 'shorts' }}">Shorts</a>
     <a href="/library?filter=not_shorts" class="{{ 'active' if filter == 'not_shorts' }}">Not Shorts</a>
@@ -16,7 +20,7 @@
     <thead>
         <tr>
             <th>Thumbnail</th><th>Title</th><th>Date</th><th>Duration</th>
-            <th>Short?</th><th>TikTok status</th><th>Scheduled</th><th>Actions</th>
+            <th>Short?</th><th>Media</th><th>TikTok status</th><th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -30,8 +34,30 @@
                 {{ "Yes" if v.is_short else "No" }}
                 {% if v.short_override is not none %}<span class="muted">(manual)</span>{% endif %}
             </td>
+            <td>
+                {% set asset = media_by_video_id.get(v.id) %}
+                {% if asset %}
+                    <span class="status ok" title="{{ asset.width }}x{{ asset.height }}, {{ (asset.filesize_bytes / 1048576)|round(1) if asset.filesize_bytes else '?' }} MB">Downloaded ✓</span>
+                {% elif v.download_error %}
+                    <span class="status warn" title="{{ v.download_error }}">Failed</span>
+                    {% if download_enabled %}
+                    <form method="post" action="/library/{{ v.id }}/download" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="filter" value="{{ filter }}">
+                        <button type="submit" class="link-button">Retry</button>
+                    </form>
+                    {% endif %}
+                {% elif download_enabled %}
+                    <form method="post" action="/library/{{ v.id }}/download" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="filter" value="{{ filter }}">
+                        <button type="submit" class="link-button">Download</button>
+                    </form>
+                {% else %}
+                    <span class="muted">—</span>
+                {% endif %}
+            </td>
             <td class="muted">Not sent</td>
-            <td class="muted">—</td>
             <td>
                 {% if v.is_short %}
                 <form method="post" action="/library/{{ v.id }}/mark-short" class="inline-form">
