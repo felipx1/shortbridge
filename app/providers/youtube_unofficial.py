@@ -21,6 +21,7 @@ obvious and auditable.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 import yt_dlp
 
@@ -29,13 +30,19 @@ class DownloadFailedError(Exception):
     pass
 
 
-def download_video(youtube_video_id: str, dest_dir: Path) -> Path:
+def download_video(youtube_video_id: str, dest_dir: Path, cookie_file: Optional[Path] = None) -> Path:
     """Downloads the given video to dest_dir as "<video_id>.mp4" (merging
     separate video/audio streams via ffmpeg, already in the image from
     Phase 1). Raises DownloadFailedError with yt-dlp's message on failure
     (private, deleted, age-restricted, region-locked, geo-blocked, yt-dlp
-    itself out of date against a YouTube change, etc.) -- callers decide
-    whether/when to retry, this function doesn't."""
+    itself out of date against a YouTube change, an expired cookie_file,
+    etc.) -- callers decide whether/when to retry, this function doesn't.
+
+    cookie_file (Netscape format -- see scripts/convert_cookies.py) proves
+    a real authenticated session to YouTube, which matters most from a
+    datacenter IP: those get bot-checked much harder than a residential
+    one, and the plain client-spoofing trick below isn't always enough on
+    its own from a VPS (confirmed hitting that wall in production)."""
     dest_dir.mkdir(parents=True, exist_ok=True)
     output_template = str(dest_dir / f"{youtube_video_id}.%(ext)s")
 
@@ -55,10 +62,12 @@ def download_video(youtube_video_id: str, dest_dir: Path) -> Path:
         # not something invented here, but it's exactly the kind of thing
         # that stops working whenever YouTube tightens that client too --
         # if downloads start failing with a bot-check error, that's the
-        # first thing to suspect (check for a yt-dlp update, and see
-        # UNOFFICIAL_DOWNLOAD.md for the cookie-based fallback).
+        # first thing to suspect (check for a yt-dlp update; cookie_file
+        # above is the other lever).
         "extractor_args": {"youtube": {"player_client": ["android"]}},
     }
+    if cookie_file is not None:
+        ydl_opts["cookiefile"] = str(cookie_file)
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

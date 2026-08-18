@@ -13,3 +13,6 @@ media/processed/*
 *.db-wal
 *.db-shm
 .pytest_cache/
+scripts/agent/agent_config.env
+media/youtube/
+youtube_cookies*.txt

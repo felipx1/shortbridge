@@ -91,6 +91,15 @@ class Settings(BaseSettings):
     # again for this long -- avoids hot-looping on a permanently broken video.
     youtube_download_retry_after_hours: int = 6
 
+    # --- Home download agent (scripts/agent/) ---
+    # YouTube's bot detection treats this VPS's datacenter IP far more
+    # aggressively than a residential one (confirmed in production -- see
+    # UNOFFICIAL_DOWNLOAD.md). The agent runs yt-dlp on a residential
+    # connection instead and pushes finished files here. Blank = the
+    # agent endpoints are disabled (401 on everything) -- generate with
+    # `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+    agent_api_token: str = ""
+
     @property
     def is_google_configured(self) -> bool:
         return bool(self.google_client_id and self.google_client_secret)
@@ -98,6 +107,10 @@ class Settings(BaseSettings):
     @property
     def is_tiktok_configured(self) -> bool:
         return bool(self.tiktok_client_key and self.tiktok_client_secret)
+
+    @property
+    def is_agent_configured(self) -> bool:
+        return bool(self.agent_api_token)
 
 
 @lru_cache
