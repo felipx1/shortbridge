@@ -6,6 +6,7 @@ from sqlmodel import select
 from app.config import get_settings
 from app.deps import CurrentUserDep, SessionDep
 from app.models import OAuthAccount, OAuthProvider
+from app.security import create_csrf_token
 from app.templating import templates
 
 router = APIRouter()
@@ -30,5 +31,7 @@ def connections(request: Request, user: CurrentUserDep, session: SessionDep):
             "tiktok_configured": settings.is_tiktok_configured,
             "youtube_account": youtube_account,
             "tiktok_account": tiktok_account,
+            "csrf_token": create_csrf_token(),
+            "google_error": request.query_params.get("google_error"),
         },
     )

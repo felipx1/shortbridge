@@ -68,6 +68,33 @@ def verify_csrf_token(token: str | None, max_age_seconds: int = 60 * 60 * 4) -> 
     return True
 
 
+def _oauth_state_serializer() -> URLSafeTimedSerializer:
+    settings = get_settings()
+    return URLSafeTimedSerializer(settings.app_secret_key, salt="shortbridge-oauth-state")
+
+
+def create_oauth_state(provider: str, next_path: str = "/connections") -> str:
+    """Signed, self-contained `state` param for an OAuth authorize request
+    (sections 6, 12). No server-side session needed to validate it later --
+    the signature + short expiry is the anti-CSRF protection, and
+    `next_path` rides along so the callback knows where to send the user
+    back without needing to store anything."""
+    return _oauth_state_serializer().dumps({"provider": provider, "next": next_path})
+
+
+def read_oauth_state(token: str, expected_provider: str, max_age_seconds: int = 600) -> str | None:
+    """Returns `next_path` if the state is valid, freshly issued, and for
+    the expected provider -- None otherwise (caller should reject the
+    callback outright, never guess)."""
+    try:
+        data = _oauth_state_serializer().loads(token, max_age=max_age_seconds)
+    except (BadSignature, SignatureExpired):
+        return None
+    if data.get("provider") != expected_provider:
+        return None
+    return data.get("next", "/connections")
+
+
 class LoginRateLimiter:
     """In-memory sliding-window limiter keyed by client IP. Resets on
     restart -- acceptable here since a restart is a rare, deliberate event

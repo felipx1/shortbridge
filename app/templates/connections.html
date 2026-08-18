@@ -3,13 +3,30 @@
 {% block content %}
 <h1>Connections</h1>
 
+{% if google_error %}
+<p class="error">Could not connect to Google — check the Logs page for details.</p>
+{% endif %}
+
 <section class="card">
     <h3>YouTube</h3>
     {% if youtube_account %}
-        <p class="status ok">Connected — {{ youtube_account.display_name }}</p>
-        <p class="muted">Scopes: {{ youtube_account.granted_scopes }}</p>
-        <form method="post" action="/oauth/google/disconnect"><button type="submit">Disconnect</button></form>
-        <form method="post" action="/oauth/google/sync"><button type="submit">Sync now</button></form>
+        {% if youtube_account.needs_reconnect %}
+            <p class="status warn">Reconnection needed</p>
+            <p class="muted">{{ youtube_account.last_error }}</p>
+            <p class="muted">This happens periodically while the Google app is in "Testing" mode (unverified) — see GOOGLE_OAUTH_SETUP.md. One click fixes it:</p>
+            <a class="button" href="/oauth/google/start">Reconnect</a>
+        {% else %}
+            <p class="status ok">Connected — {{ youtube_account.display_name }}</p>
+            <p class="muted">Scopes: {{ youtube_account.granted_scopes }}</p>
+            <form method="post" action="/oauth/google/sync" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit">Sync now</button>
+            </form>
+        {% endif %}
+        <form method="post" action="/oauth/google/disconnect" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit">Disconnect</button>
+        </form>
     {% elif google_configured %}
         <p class="status off">Not connected</p>
         <a class="button" href="/oauth/google/start">Connect</a>
@@ -29,7 +46,10 @@
             <li>Direct Public Post: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.publish") else "NOT APPROVED ⚠️" }}</li>
             <li>Video history: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.list") else "NOT AVAILABLE ⚠️" }}</li>
         </ul>
-        <form method="post" action="/oauth/tiktok/disconnect"><button type="submit">Disconnect</button></form>
+        <form method="post" action="/oauth/tiktok/disconnect" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit">Disconnect</button>
+        </form>
     {% elif tiktok_configured %}
         <p class="status off">Not connected</p>
         <a class="button" href="/oauth/tiktok/start">Connect</a>

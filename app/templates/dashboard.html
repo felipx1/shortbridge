@@ -6,9 +6,13 @@
 <section class="card-row">
     <div class="card">
         <h3>YouTube</h3>
-        <p class="status {{ 'ok' if youtube_connected else 'off' }}">
-            {{ "Connected" if youtube_connected else "Not connected" }}
-        </p>
+        {% if youtube_needs_reconnect %}
+            <p class="status warn"><a href="/connections">Reconnect needed</a></p>
+        {% else %}
+            <p class="status {{ 'ok' if youtube_connected else 'off' }}">
+                {{ "Connected" if youtube_connected else "Not connected" }}
+            </p>
+        {% endif %}
     </div>
     <div class="card">
         <h3>TikTok</h3>

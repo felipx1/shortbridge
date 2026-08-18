@@ -3,29 +3,57 @@
 {% block content %}
 <h1>Shorts Library</h1>
 
+<p class="muted">{{ total_synced }} videos synced total.</p>
+
+<nav class="filter-tabs">
+    <a href="/library?filter=shorts" class="{{ 'active' if filter == 'shorts' }}">Shorts</a>
+    <a href="/library?filter=not_shorts" class="{{ 'active' if filter == 'not_shorts' }}">Not Shorts</a>
+    <a href="/library?filter=all" class="{{ 'active' if filter == 'all' }}">All</a>
+</nav>
+
 {% if videos %}
 <table class="library-table">
     <thead>
         <tr>
             <th>Thumbnail</th><th>Title</th><th>Date</th><th>Duration</th>
-            <th>Short?</th><th>TikTok status</th><th>Scheduled</th>
+            <th>Short?</th><th>TikTok status</th><th>Scheduled</th><th>Actions</th>
         </tr>
     </thead>
     <tbody>
     {% for v in videos %}
         <tr>
             <td>{% if v.thumbnail_url %}<img src="{{ v.thumbnail_url }}" alt="" class="thumb">{% endif %}</td>
-            <td>{{ v.title }}</td>
+            <td><a href="{{ v.youtube_url }}" target="_blank" rel="noopener">{{ v.title }}</a></td>
             <td>{{ v.published_at.strftime("%Y-%m-%d") if v.published_at else "" }}</td>
-            <td>{{ v.duration_seconds }}</td>
-            <td>{{ "Yes" if v.is_short else "No" }}</td>
+            <td>{{ v.duration_seconds|int if v.duration_seconds is not none else "?" }}s</td>
+            <td title="{{ v.detection_reason }}">
+                {{ "Yes" if v.is_short else "No" }}
+                {% if v.short_override is not none %}<span class="muted">(manual)</span>{% endif %}
+            </td>
             <td class="muted">Not sent</td>
             <td class="muted">—</td>
+            <td>
+                {% if v.is_short %}
+                <form method="post" action="/library/{{ v.id }}/mark-short" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="filter" value="{{ filter }}">
+                    <input type="hidden" name="is_short" value="false">
+                    <button type="submit" class="link-button">Not a Short</button>
+                </form>
+                {% else %}
+                <form method="post" action="/library/{{ v.id }}/mark-short" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="filter" value="{{ filter }}">
+                    <input type="hidden" name="is_short" value="true">
+                    <button type="submit" class="link-button">Mark as Short</button>
+                </form>
+                {% endif %}
+            </td>
         </tr>
     {% endfor %}
     </tbody>
 </table>
 {% else %}
-<p class="muted">No videos synced yet. Connect YouTube and run a sync from the Connections page.</p>
+<p class="muted">No videos match this filter. {% if total_synced == 0 %}Connect YouTube and run a sync from the Connections page.{% endif %}</p>
 {% endif %}
 {% endblock %}

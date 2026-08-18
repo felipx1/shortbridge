@@ -38,5 +38,14 @@ class OAuthAccount(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=utcnow)
     disconnected_at: Optional[datetime] = Field(default=None)
 
+    # Google, in OAuth consent "Testing" publishing status, expires
+    # refresh tokens for sensitive scopes (youtube.readonly included)
+    # after 7 days -- this is a real platform constraint, not a bug (see
+    # GOOGLE_OAUTH_SETUP.md). When a refresh attempt comes back
+    # invalid_grant, we flip this instead of silently going quiet, so the
+    # UI can surface "Reconnect YouTube" instead of failing sync forever.
+    needs_reconnect: bool = Field(default=False)
+    last_error: Optional[str] = Field(default=None)
+
     def has_scope(self, scope: str) -> bool:
         return scope in self.granted_scopes.split()

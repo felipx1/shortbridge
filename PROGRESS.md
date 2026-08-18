@@ -5,7 +5,9 @@
   - First deploy attempt failed twice; both fixed and redeployed successfully:
     1. Bind-mounted `./data`/`./media` got auto-created root-owned by Docker, unwritable by the non-root (uid 1000) container user → switched to named volumes (`shortbridge_data`, `shortbridge_media`), which inherit the image's ownership.
     2. `ADMIN_PASSWORD_HASH` (Argon2id, full of `$`) got silently corrupted by Compose's `.env` interpolation (`$argon2id` → blank) → must be `$$`-escaped; documented in `INSTALL.md`.
-- [ ] **Phase 2** — Google OAuth + YouTube sync
+- [~] **Phase 2** — Google OAuth + YouTube sync. Code complete and verified locally (`scripts/smoke_test_phase2.py`: duration/short-detection heuristic incl. boundary cases, authorize URL shape, app correctly refuses `/oauth/google/start` when unconfigured). **Blocked on real Google credentials** — see `GOOGLE_OAUTH_SETUP.md` for the exact current console steps (it's been restructured into "Google Auth Platform" — Branding/Audience/Clients/Data Access — since older tutorials were written). Key findings baked into the implementation:
+  - No `isShort` field or pixel width/height anywhere in the Data API. Detection uses duration (≤180s, the official cutoff since Oct 2024) + thumbnail aspect ratio (the one place width/height IS exposed) + `#shorts` as a tie-breaker, conservative toward "not a Short" when ambiguous. Manual override (Mark as Short / Not a Short) is live on the Library page.
+  - `youtube.readonly` is a sensitive scope → refresh tokens expire after 7 days while the app is in unverified "Testing" status. Handled explicitly (`InvalidGrantError` → `needs_reconnect` flag → "Reconnect" banner on Dashboard/Connections), not left to fail silently.
 - [ ] **Phase 3** — Media library, import matching, FFprobe/FFmpeg
 - [ ] **Phase 4** — TikTok OAuth
 - [ ] **Phase 5** — TikTok Draft Upload

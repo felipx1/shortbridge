@@ -10,7 +10,7 @@ from sqlmodel import Session
 from app.bootstrap import ensure_admin_user
 from app.config import get_settings
 from app.database import engine, init_db
-from app.routers import auth, connections, dashboard, health, library, logs, queue, settings_router
+from app.routers import auth, connections, dashboard, health, library, logs, oauth_google, queue, settings_router
 from app.services.scheduler import shutdown_scheduler, start_scheduler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -39,6 +39,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(connections.router)
+app.include_router(oauth_google.router)
 app.include_router(library.router)
 app.include_router(queue.router)
 app.include_router(settings_router.router)
