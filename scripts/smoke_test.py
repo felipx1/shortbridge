@@ -70,4 +70,12 @@ r = client.post("/logout", follow_redirects=False)
 assert r.status_code == 303
 print("POST /logout -> 303  OK")
 
+# Public legal pages, no login required (TikTok's app registration form requires these URLs)
+r = client.get("/privacy")
+assert r.status_code == 200 and "Privacy Policy" in r.text
+print("GET /privacy -> 200  OK")
+r = client.get("/terms")
+assert r.status_code == 200 and "Terms of Service" in r.text
+print("GET /terms -> 200  OK")
+
 print("\nALL SMOKE TESTS PASSED")

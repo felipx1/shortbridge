@@ -10,7 +10,7 @@ from sqlmodel import Session
 from app.bootstrap import ensure_admin_user
 from app.config import get_settings
 from app.database import engine, init_db
-from app.routers import agent, auth, connections, dashboard, health, library, logs, oauth_google, oauth_tiktok, queue, settings_router
+from app.routers import agent, auth, connections, dashboard, health, legal, library, logs, oauth_google, oauth_tiktok, queue, settings_router
 from app.services.scheduler import shutdown_scheduler, start_scheduler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -37,6 +37,7 @@ app = FastAPI(title="ShortBridge", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(health.router)
+app.include_router(legal.router)
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(connections.router)

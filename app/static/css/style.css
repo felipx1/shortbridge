@@ -123,3 +123,7 @@ fieldset { border: 1px solid var(--border); border-radius: 8px; display: flex; f
 
 .log-warning { color: var(--warn); }
 .log-error { color: var(--error); }
+
+.legal { max-width: 720px; margin: 0 auto; padding: 40px 24px; line-height: 1.6; }
+.legal h2 { margin-top: 2em; font-size: 1.1em; }
+.legal a { color: var(--accent); }

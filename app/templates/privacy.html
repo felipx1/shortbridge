@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy — ShortBridge{% endblock %}
+{% block content %}
+<div class="legal">
+<h1>Privacy Policy</h1>
+<p class="muted">Last updated: 2026-08-18</p>
+
+<p>ShortBridge is a private, self-hosted tool built and operated by a single
+individual for their own personal use — migrating their own YouTube Shorts
+to their own TikTok account. It is not a public service, has no other
+users, and is not operated by a company. This page exists because
+third-party platforms (TikTok, Google) require a published privacy policy
+before an app can request access to an account, even a personal one.</p>
+
+<h2>What data this application stores</h2>
+<ul>
+    <li><strong>OAuth tokens</strong> for the YouTube and TikTok accounts you
+        connect — encrypted at rest, used only to call those platforms'
+        official APIs on your behalf (reading your YouTube channel's videos,
+        and, once you enable it, posting to your TikTok account).</li>
+    <li><strong>YouTube video metadata</strong> synced from your channel:
+        titles, descriptions, durations, thumbnails, publish dates, and
+        video IDs.</li>
+    <li><strong>TikTok video metadata</strong> (once connected with the
+        relevant scope): video IDs, titles, and publish dates, used only to
+        avoid publishing the same content twice.</li>
+    <li><strong>Video files</strong>, if and when you choose to download them
+        into this application (manually, or via the optional home download
+        agent described in the project's own documentation) — along with a
+        hash and basic technical metadata (resolution, duration, codec)
+        used to detect duplicates.</li>
+    <li><strong>An activity log</strong> of actions this application takes
+        (syncing, publishing, errors) for troubleshooting.</li>
+</ul>
+
+<h2>What this data is used for</h2>
+<p>Solely to operate the application as you've configured it: syncing your
+YouTube channel, matching video files to the right YouTube video, and
+publishing to your own TikTok account according to the schedule you set.
+Nothing here is used for advertising, analytics, or any purpose beyond
+running the tool for its owner.</p>
+
+<h2>Who can access this data</h2>
+<p>The single administrator account of this application (its owner/operator).
+There are no other user accounts. This application is not operated by a
+company, does not sell or share data with third parties, and does not use
+any analytics or tracking services.</p>
+
+<h2>Third-party services</h2>
+<p>This application calls the official YouTube Data API and TikTok APIs on
+your behalf, using the access you explicitly grant via OAuth. Your use of
+YouTube and TikTok themselves remains subject to their own privacy
+policies and terms.</p>
+
+<h2>How to disconnect / delete data</h2>
+<p>Disconnecting an account (from the Connections page) revokes the stored
+tokens with the provider and deletes them from this application. Because
+this is a self-hosted, single-operator tool, the operator has direct
+access to delete any or all stored data (video metadata, files, logs) at
+any time.</p>
+
+<h2>Contact</h2>
+<p>This project's source code and issue tracker:
+<a href="https://github.com/felipx1/shortbridge">github.com/felipx1/shortbridge</a>.</p>
+</div>
+{% endblock %}
