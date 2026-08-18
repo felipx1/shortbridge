@@ -44,6 +44,7 @@ def dashboard(request: Request, user: CurrentUserDep, session: SessionDep):
             "youtube_connected": bool(youtube_connected),
             "youtube_needs_reconnect": bool(youtube_connected and youtube_connected.needs_reconnect),
             "tiktok_connected": bool(tiktok_connected),
+            "tiktok_needs_reconnect": bool(tiktok_connected and tiktok_connected.needs_reconnect),
             "shorts_count": shorts_count,
             "published_count": count_status(PublicationStatus.published),
             "draft_count": count_status(PublicationStatus.draft),

@@ -41,6 +41,7 @@ from urllib.parse import urlencode
 import httpx
 
 from app.config import get_settings
+from app.providers.base import ProviderInvalidGrantError
 
 AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
@@ -55,7 +56,7 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
 SHORTS_MAX_DURATION_SECONDS = 180  # official cutoff since 2024-10-15
 
 
-class InvalidGrantError(Exception):
+class InvalidGrantError(ProviderInvalidGrantError):
     """Refresh token is dead (revoked, or the 7-day Testing-mode expiry).
     Caller's job: mark the OAuthAccount as needing reconnection, not retry."""
 

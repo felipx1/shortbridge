@@ -6,6 +6,9 @@
 {% if google_error %}
 <p class="error">Could not connect to Google — check the Logs page for details.</p>
 {% endif %}
+{% if tiktok_error %}
+<p class="error">Could not connect to TikTok — check the Logs page for details.</p>
+{% endif %}
 
 <section class="card">
     <h3>YouTube</h3>
@@ -39,13 +42,19 @@
 <section class="card">
     <h3>TikTok</h3>
     {% if tiktok_account %}
-        <p class="status ok">Connected — {{ tiktok_account.display_name }}</p>
-        <p class="muted">Scopes: {{ tiktok_account.granted_scopes }}</p>
-        <ul>
-            <li>Draft Upload: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.upload") else "NOT AVAILABLE ⚠️" }}</li>
-            <li>Direct Public Post: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.publish") else "NOT APPROVED ⚠️" }}</li>
-            <li>Video history: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.list") else "NOT AVAILABLE ⚠️" }}</li>
-        </ul>
+        {% if tiktok_account.needs_reconnect %}
+            <p class="status warn">Reconnection needed</p>
+            <p class="muted">{{ tiktok_account.last_error }}</p>
+            <a class="button" href="/oauth/tiktok/start">Reconnect</a>
+        {% else %}
+            <p class="status ok">Connected — {{ tiktok_account.display_name }}</p>
+            <p class="muted">Scopes: {{ tiktok_account.granted_scopes }}</p>
+            <ul>
+                <li>Draft Upload: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.upload") else "NOT AVAILABLE ⚠️" }}</li>
+                <li>Direct Public Post: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.publish") else "NOT APPROVED ⚠️" }}</li>
+                <li>Video history: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.list") else "NOT AVAILABLE ⚠️" }}</li>
+            </ul>
+        {% endif %}
         <form method="post" action="/oauth/tiktok/disconnect" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit">Disconnect</button>

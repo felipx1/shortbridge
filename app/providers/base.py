@@ -12,6 +12,14 @@ from typing import Protocol
 from app.models import OAuthAccount
 
 
+class ProviderInvalidGrantError(Exception):
+    """Base class for 'this refresh token is dead' across providers --
+    each provider's own InvalidGrantError inherits from this so
+    app.services.oauth can catch one type regardless of which provider
+    raised it (revoked, or Google's 7-day Testing-mode expiry, or
+    whatever TikTok's equivalent turns out to be)."""
+
+
 class OAuthProviderClient(Protocol):
     """Common OAuth lifecycle every provider (Google, TikTok, ...) implements."""
 

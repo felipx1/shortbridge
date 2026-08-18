@@ -16,9 +16,13 @@
     </div>
     <div class="card">
         <h3>TikTok</h3>
-        <p class="status {{ 'ok' if tiktok_connected else 'off' }}">
-            {{ "Connected" if tiktok_connected else "Not connected" }}
-        </p>
+        {% if tiktok_needs_reconnect %}
+            <p class="status warn"><a href="/connections">Reconnect needed</a></p>
+        {% else %}
+            <p class="status {{ 'ok' if tiktok_connected else 'off' }}">
+                {{ "Connected" if tiktok_connected else "Not connected" }}
+            </p>
+        {% endif %}
     </div>
 </section>
 

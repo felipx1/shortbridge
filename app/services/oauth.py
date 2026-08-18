@@ -11,15 +11,20 @@ from datetime import timedelta
 from sqlmodel import Session
 
 from app.models._util import utcnow
-from app.models.oauth_account import OAuthAccount
-from app.providers import youtube
-from app.providers.youtube import InvalidGrantError
+from app.models.oauth_account import OAuthAccount, OAuthProvider
+from app.providers import tiktok, youtube
+from app.providers.base import ProviderInvalidGrantError
 from app.services.audit import log_event
 from app.services.crypto import decrypt_token, encrypt_token
 
 # Refresh a bit before actual expiry so a slow request never straddles the
 # boundary and gets a 401 mid-call.
 _EXPIRY_SAFETY_MARGIN = timedelta(minutes=5)
+
+_REFRESH_FUNCTIONS = {
+    OAuthProvider.google: youtube.refresh_access_token,
+    OAuthProvider.tiktok: tiktok.refresh_access_token,
+}
 
 
 class ReconnectNeededError(Exception):
@@ -41,12 +46,13 @@ def get_valid_access_token(session: Session, account: OAuthAccount) -> str:
 
     refresh_token = decrypt_token(account.encrypted_refresh_token)
 
-    if account.provider.value != "google":
+    refresh_fn = _REFRESH_FUNCTIONS.get(account.provider)
+    if refresh_fn is None:
         raise NotImplementedError(f"token refresh not implemented for provider {account.provider}")
 
     try:
-        result = youtube.refresh_access_token(refresh_token)
-    except InvalidGrantError as exc:
+        result = refresh_fn(refresh_token)
+    except ProviderInvalidGrantError as exc:
         account.needs_reconnect = True
         account.last_error = str(exc)
         account.updated_at = utcnow()
@@ -55,13 +61,19 @@ def get_valid_access_token(session: Session, account: OAuthAccount) -> str:
         log_event(
             session,
             "oauth_reconnect_needed",
-            f"YouTube account '{account.display_name}' needs to be reconnected: {exc}",
+            f"{account.provider.value} account '{account.display_name}' needs to be reconnected: {exc}",
             level="warning",
         )
         raise ReconnectNeededError(str(exc)) from exc
 
     account.encrypted_access_token = encrypt_token(result["access_token"])
     account.access_token_expires_at = utcnow() + timedelta(seconds=result.get("expires_in", 3600))
+    # Some providers (TikTok) rotate the refresh token on every refresh and
+    # require the new one to be used going forward; others (Google) simply
+    # don't include one here. Persist it whenever it shows up, for any
+    # provider -- a no-op when it's absent.
+    if result.get("refresh_token"):
+        account.encrypted_refresh_token = encrypt_token(result["refresh_token"])
     account.needs_reconnect = False
     account.last_error = None
     account.updated_at = utcnow()

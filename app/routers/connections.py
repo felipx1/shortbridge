@@ -33,5 +33,6 @@ def connections(request: Request, user: CurrentUserDep, session: SessionDep):
             "tiktok_account": tiktok_account,
             "csrf_token": create_csrf_token(),
             "google_error": request.query_params.get("google_error"),
+            "tiktok_error": request.query_params.get("tiktok_error"),
         },
     )
