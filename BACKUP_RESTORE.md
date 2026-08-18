@@ -3,7 +3,7 @@
 ## What's backed up
 
 `scripts/backup.sh` archives:
-- `data/shortbridge.db` (+ `-wal`/`-shm` if present)
+- The `shortbridge_data` named Docker volume (the SQLite DB + WAL files)
 - `.env` (secrets + config)
 
 Media files are **not** included — they're large and, for Shorts sourced
@@ -29,9 +29,8 @@ cd /docker/shortbridge
 ./scripts/restore.sh backups/shortbridge-20260101T000000Z.tar.gz
 ```
 
-This stops the app, overwrites `data/` and `.env`, and starts it back up.
-There is a confirmation prompt — this is destructive to whatever is
-currently in `data/`.
+This stops the app, wipes and repopulates the `shortbridge_data` volume,
+overwrites `.env`, and starts it back up. There is a confirmation prompt —
+this is destructive to whatever is currently in that volume.
 
-After restoring, re-check ownership (containers run as uid 1000, see
-`INSTALL.md` step 3) and hit `/health`.
+After restoring, hit `/health`.

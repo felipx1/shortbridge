@@ -16,8 +16,16 @@ services:
     env_file:
       - .env
     volumes:
-      - ./data:/data
-      - ./media:/media
+      # Named volumes, not bind mounts: Docker initializes a fresh named
+      # volume's ownership from the image's directory (uid 1000, set in
+      # Dockerfile), which a bind mount to a host directory does not --
+      # Compose auto-creates missing bind-mount host dirs as root, which
+      # the non-root container user then can't write to. Once Phase 3
+      # needs SFTP-drop access to media/inbox and media/import, revisit
+      # this (bind mount + a one-time `chown 1000:1000` on the host, done
+      # via whatever access is available at that point).
+      - shortbridge_data:/data
+      - shortbridge_media:/media
     # FastAPI + SQLite + occasional ffmpeg bursts. Raise if transcoding
     # gets OOM-killed once real media flows through (see ollama's project
     # for the pattern of documenting *why* before bumping a limit).
@@ -28,3 +36,7 @@ services:
       - traefik.http.routers.shortbridge.entrypoints=websecure
       - traefik.http.routers.shortbridge.tls.certresolver=letsencrypt
       - traefik.http.services.shortbridge.loadbalancer.server.port=8000
+
+volumes:
+  shortbridge_data:
+  shortbridge_media:

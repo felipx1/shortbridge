@@ -2,9 +2,11 @@
 
 ## `/health` returns `"database": "error: ..."`
 
-Usually a permissions problem on the bind-mounted `data/` directory (must
-be owned by uid 1000, see `INSTALL.md` step 3), or the volume isn't
-mounted at all. Check `docker compose logs shortbridge`.
+Check `docker compose logs shortbridge`. `data` is a named volume
+(`shortbridge_data`) that Docker initializes with the image's uid-1000
+ownership, so this shouldn't be a permissions problem in normal operation
+— if it is (e.g. after manually poking at the volume), fix with:
+`docker run --rm -v shortbridge_data:/data alpine chown -R 1000:1000 /data`.
 
 ## `/health` returns `"scheduler": "stopped"`
 

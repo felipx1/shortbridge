@@ -17,6 +17,12 @@ Copy `.env.example` to `.env`, fill in the generated values plus
 
 **`.env` is never committed.** On the VPS it should end up `chmod 600`.
 
+**Escape every literal `$` as `$$`.** `ADMIN_PASSWORD_HASH` (Argon2id) is
+full of them (`$argon2id$v=19$...`) — Docker Compose's `.env` parser treats
+unescaped `$word` as a variable reference and silently blanks it out. Ask
+first: does *any* value here contain a `$`? If so, double it, or the value
+will be silently corrupted with no error until you try to log in.
+
 ## 2. Push to a Git repository
 
 The VPS deployment tooling in use here (Hostinger VPS Projects) deploys
@@ -25,18 +31,16 @@ URL. Since ShortBridge is custom code (not a published image), push this
 project to a repository you control (private is fine — it contains no
 secrets, those all live in `.env` which stays off Git).
 
-## 3. Create host directories with the right ownership
+## 3. Storage
 
-`data/` and `media/` are bind-mounted (not named volumes) so you can SFTP
-files straight into `media/inbox/` and `media/import/` — but that means
-they must be owned by the container's non-root user (uid 1000) *before*
-the first `docker compose up`, or ShortBridge won't be able to write to
-them:
-
-```
-mkdir -p /docker/shortbridge/data /docker/shortbridge/media/{inbox,import,processed}
-chown -R 1000:1000 /docker/shortbridge/data /docker/shortbridge/media
-```
+`data/` and `media/` are Docker named volumes (`shortbridge_data`,
+`shortbridge_media`), not host bind mounts — Docker initializes a fresh
+named volume's ownership from the image (uid 1000), so this works with no
+manual `chown` step, unlike a bind mount to an auto-created (root-owned)
+host directory. Trade-off: you can't SFTP straight into `media/inbox/` yet.
+Phase 3 will either switch `media` to a bind mount (needs a one-time `chown`
+on the host) or add an in-app upload UI instead — undecided until we're
+actually there.
 
 ## 4. Deploy
 
