@@ -187,11 +187,15 @@ def parse_iso8601_duration(value: str) -> Optional[float]:
 
 
 def parse_iso8601_datetime(value: str) -> Optional[datetime]:
-    """'2026-01-15T10:00:00Z' -> aware UTC datetime."""
+    """'2026-01-15T10:00:00Z' -> naive UTC datetime (tzinfo stripped after
+    conversion, to match app.models._util.utcnow's convention -- see its
+    docstring for why: SQLite drops tzinfo on every stored datetime, so
+    keeping this one aware would make it silently uncomparable to anything
+    read back from the database)."""
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc).replace(tzinfo=None)
     except ValueError:
         return None
 
