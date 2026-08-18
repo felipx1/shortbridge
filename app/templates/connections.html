@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Connections — ShortBridge{% endblock %}
+{% block content %}
+<h1>Connections</h1>
+
+<section class="card">
+    <h3>YouTube</h3>
+    {% if youtube_account %}
+        <p class="status ok">Connected — {{ youtube_account.display_name }}</p>
+        <p class="muted">Scopes: {{ youtube_account.granted_scopes }}</p>
+        <form method="post" action="/oauth/google/disconnect"><button type="submit">Disconnect</button></form>
+        <form method="post" action="/oauth/google/sync"><button type="submit">Sync now</button></form>
+    {% elif google_configured %}
+        <p class="status off">Not connected</p>
+        <a class="button" href="/oauth/google/start">Connect</a>
+    {% else %}
+        <p class="status off">Not configured</p>
+        <p class="muted">No Google OAuth credentials set yet. See GOOGLE_OAUTH_SETUP.md (Phase 2).</p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h3>TikTok</h3>
+    {% if tiktok_account %}
+        <p class="status ok">Connected — {{ tiktok_account.display_name }}</p>
+        <p class="muted">Scopes: {{ tiktok_account.granted_scopes }}</p>
+        <ul>
+            <li>Draft Upload: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.upload") else "NOT AVAILABLE ⚠️" }}</li>
+            <li>Direct Public Post: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.publish") else "NOT APPROVED ⚠️" }}</li>
+            <li>Video history: {{ "AVAILABLE ✅" if tiktok_account.has_scope("video.list") else "NOT AVAILABLE ⚠️" }}</li>
+        </ul>
+        <form method="post" action="/oauth/tiktok/disconnect"><button type="submit">Disconnect</button></form>
+    {% elif tiktok_configured %}
+        <p class="status off">Not connected</p>
+        <a class="button" href="/oauth/tiktok/start">Connect</a>
+    {% else %}
+        <p class="status off">Not configured</p>
+        <p class="muted">No TikTok app credentials set yet. See TIKTOK_SETUP.md (Phase 4).</p>
+    {% endif %}
+</section>
+{% endblock %}

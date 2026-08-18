@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Library — ShortBridge{% endblock %}
+{% block content %}
+<h1>Shorts Library</h1>
+
+{% if videos %}
+<table class="library-table">
+    <thead>
+        <tr>
+            <th>Thumbnail</th><th>Title</th><th>Date</th><th>Duration</th>
+            <th>Short?</th><th>TikTok status</th><th>Scheduled</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for v in videos %}
+        <tr>
+            <td>{% if v.thumbnail_url %}<img src="{{ v.thumbnail_url }}" alt="" class="thumb">{% endif %}</td>
+            <td>{{ v.title }}</td>
+            <td>{{ v.published_at.strftime("%Y-%m-%d") if v.published_at else "" }}</td>
+            <td>{{ v.duration_seconds }}</td>
+            <td>{{ "Yes" if v.is_short else "No" }}</td>
+            <td class="muted">Not sent</td>
+            <td class="muted">—</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="muted">No videos synced yet. Connect YouTube and run a sync from the Connections page.</p>
+{% endif %}
+{% endblock %}

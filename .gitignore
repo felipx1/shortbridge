@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+data/
+media/inbox/*
+media/import/*
+media/processed/*
+!media/inbox/.gitkeep
+!media/import/.gitkeep
+!media/processed/.gitkeep
+*.db
+*.db-wal
+*.db-shm
+.pytest_cache/

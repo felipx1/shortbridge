@@ -1,0 +1,10 @@
+.venv
+__pycache__
+*.pyc
+.env
+data
+media
+.git
+.gitignore
+*.md
+scripts/smoke_test.py

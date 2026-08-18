@@ -1,0 +1,30 @@
+# Deployed on the VPS as the "shortbridge" Docker Compose project
+# (/docker/shortbridge/), managed via Hostinger's VPS Projects API.
+#
+# Deliberately minimal: one service, no host ports (Traefik -- already
+# running on this VPS -- discovers it via Docker labels and routes HTTPS to
+# it, exactly like the existing cookabot/hermes-agent projects). No Redis,
+# no Celery, no second reverse proxy.
+services:
+  shortbridge:
+    build: .
+    restart: unless-stopped
+    # Keep this pinned once Phase 10 tags a release; `build: .` is fine
+    # while iterating during Phases 1-9.
+    expose:
+      - "8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+      - ./media:/media
+    # FastAPI + SQLite + occasional ffmpeg bursts. Raise if transcoding
+    # gets OOM-killed once real media flows through (see ollama's project
+    # for the pattern of documenting *why* before bumping a limit).
+    mem_limit: 1g
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.shortbridge.rule=Host(`shortbridge.srv1006990.hstgr.cloud`)
+      - traefik.http.routers.shortbridge.entrypoints=websecure
+      - traefik.http.routers.shortbridge.tls.certresolver=letsencrypt
+      - traefik.http.services.shortbridge.loadbalancer.server.port=8000

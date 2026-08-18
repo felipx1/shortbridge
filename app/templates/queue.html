@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Queue — ShortBridge{% endblock %}
+{% block content %}
+<h1>Queue</h1>
+
+{% if upcoming %}
+<table class="library-table">
+    <thead><tr><th>Caption</th><th>Status</th><th>Scheduled at</th></tr></thead>
+    <tbody>
+    {% for p in upcoming %}
+        <tr>
+            <td>{{ p.tiktok_caption or p.original_title }}</td>
+            <td>{{ p.status.value }}</td>
+            <td>{{ p.scheduled_at }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="muted">Nothing scheduled yet. Select Shorts in the Library and configure a schedule in Settings.</p>
+{% endif %}
+{% endblock %}

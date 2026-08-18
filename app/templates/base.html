@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ShortBridge{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+{% if user %}
+<header class="topbar">
+    <div class="brand">ShortBridge</div>
+    <nav>
+        <a href="/">Dashboard</a>
+        <a href="/connections">Connections</a>
+        <a href="/library">Library</a>
+        <a href="/queue">Queue</a>
+        <a href="/settings">Settings</a>
+        <a href="/logs">Logs</a>
+    </nav>
+    <form method="post" action="/logout" class="logout-form">
+        <button type="submit">Log out</button>
+    </form>
+</header>
+{% if settings.dry_run %}
+<div class="dry-run-banner">DRY RUN MODE &mdash; no content will be uploaded</div>
+{% endif %}
+{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

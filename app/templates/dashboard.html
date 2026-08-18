@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ShortBridge{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<section class="card-row">
+    <div class="card">
+        <h3>YouTube</h3>
+        <p class="status {{ 'ok' if youtube_connected else 'off' }}">
+            {{ "Connected" if youtube_connected else "Not connected" }}
+        </p>
+    </div>
+    <div class="card">
+        <h3>TikTok</h3>
+        <p class="status {{ 'ok' if tiktok_connected else 'off' }}">
+            {{ "Connected" if tiktok_connected else "Not connected" }}
+        </p>
+    </div>
+</section>
+
+<section class="card-row">
+    <div class="card"><h3>YouTube Shorts</h3><p class="big-number">{{ shorts_count }}</p></div>
+    <div class="card"><h3>Published</h3><p class="big-number">{{ published_count }}</p></div>
+    <div class="card"><h3>Drafts</h3><p class="big-number">{{ draft_count }}</p></div>
+    <div class="card"><h3>Scheduled</h3><p class="big-number">{{ scheduled_count }}</p></div>
+    <div class="card"><h3>Failed</h3><p class="big-number">{{ failed_count }}</p></div>
+</section>
+
+<section>
+    <h3>Next publication</h3>
+    {% if next_publication %}
+        <p>{{ next_publication.tiktok_caption or next_publication.original_title }} &mdash; {{ next_publication.scheduled_at }}</p>
+    {% else %}
+        <p class="muted">Nothing scheduled yet.</p>
+    {% endif %}
+</section>
+
+{% if not youtube_connected or not tiktok_connected %}
+<section>
+    <p class="muted">Connect YouTube and TikTok on the <a href="/connections">Connections</a> page to get started.</p>
+</section>
+{% endif %}
+{% endblock %}
