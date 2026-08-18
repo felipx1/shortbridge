@@ -36,14 +36,17 @@ from app.providers import youtube_unofficial  # noqa: E402
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("shortbridge-agent")
 
-BATCH_SIZE = 5  # videos per run -- keep runs short; Task Scheduler brings it back periodically
+BATCH_SIZE = 5  # videos per run -- keep runs short, run again for more
 
 
 def _load_config() -> dict[str, str]:
     config: dict[str, str] = {}
     config_file = Path(__file__).parent / "agent_config.env"
     if config_file.exists():
-        for line in config_file.read_text(encoding="utf-8").splitlines():
+        # utf-8-sig eats a leading BOM if the file gets re-saved by
+        # PowerShell's Out-File (adds one by default) -- plain utf-8 would
+        # silently glue it onto the first key, breaking the lookup below.
+        for line in config_file.read_text(encoding="utf-8-sig").splitlines():
             line = line.strip()
             if not line or line.startswith("#") or "=" not in line:
                 continue
